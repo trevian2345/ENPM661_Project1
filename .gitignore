@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# List of nodes
+nodePath.txt
+
+# PyCharm stuff
+.idea
