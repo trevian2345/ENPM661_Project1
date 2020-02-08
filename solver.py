@@ -10,6 +10,7 @@ class solver:
         self.closeList = []
         self.actionList = []
         self.initial_state = []
+        self.goal_state = 0x012345678
         self.actions = [[(i >> 1) * (1 if i & 1 else -1), (1 if (i & 1) else -1) if not i >> 1 else 0] for i in range(4)]
         self.max_states = 9*8*7*6*5*4*3
         self.random_init()
@@ -126,15 +127,16 @@ class solver:
                             self.openList.append((new_state_as_int, new_cost, action_index))
             self.closeList.append(self.openList[index][0])
             self.actionList.append(self.openList[index][2])
-            self.openList.pop(index)
 
             # Check for the goal state
-            if self.openList[index][0] == 0x12345678:
-                break
+            if self.openList[index][0] == self.goal_state:
+                self.openList.clear()
+            else:
+                self.openList.pop(index)
 
         end_time = datetime.today()
         duration = end_time - start_time
-        print("\nWE FOUND IT!" if len(self.openList) > 0 else "\nFAILURE...")
+        print("\nSolution found!" if self.closeList[len(self.closeList) - 1] == self.goal_state else "\nFailure...")
         sys.stdout.write("\nStart time:  %s\nEnd time:  %s" % (start_time, end_time))
         sys.stdout.write("\nRuntime:  ")
         sys.stdout.write(("%d hr, " % (duration.seconds // 3600)) \
@@ -143,7 +145,23 @@ class solver:
                              if (duration.seconds // 60) % 3600 >= 1 else "")
         sys.stdout.write("%.3f sec" % ((duration.seconds % 60) + (duration.microseconds / 1000000.0)))
 
+    def displaySolution(self):
+        next_action_index = next(i for i in range(len(self.closeList)) if self.closeList[i] == self.goal_state)
+        next_state = self.int_to_state(self.goal_state)
+        state_list = [self.int_to_state(self.goal_state)]
+        while self.actionList[next_action_index] != -1:
+            next_action = [-i for i in self.actions[self.actionList[next_action_index]]]
+            next_state = self.move(next_state, next_action)
+            state_list.append(next_state)
+            next_action_index = next(i for i in range(len(self.closeList)) if self.closeList[i] == self.state_to_int(next_state))
+        state_list.reverse()
+        sys.stdout.write("\n\nOptimal solution is as follows (%d total moves):\n" % (len(state_list) - 1))
+        for state in state_list:
+            self.print_state(state)
+
 
 if __name__ == '__main__':
     S = solver()
     S.solve()
+    time.sleep(1)
+    S.displaySolution()
