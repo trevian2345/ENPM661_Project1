@@ -102,6 +102,7 @@ class solver:
         time.sleep(1.5)
         start_time = datetime.today()
         self.openList = [(self.state_to_int(self.initial_state), 0, -1)]
+        nodeInfo = io.open(self.nodeInfo, mode="wt")
 
         # Expand cells while there are cells on the open list
         while len(self.openList) > 0:
@@ -131,6 +132,7 @@ class solver:
                             self.openList.append((new_state_as_int, new_cost, action_index))
             self.closeList.append(self.openList[index][0])
             self.actionList.append(self.openList[index][2])
+            nodeInfo.write("%d %d %d\n" % (len(self.closeList), self.openList[index][1], 0))
 
             # Check for the goal state
             if self.openList[index][0] == self.goal_state:
@@ -138,6 +140,7 @@ class solver:
             else:
                 self.openList.pop(index)
 
+        nodeInfo.close()
         end_time = datetime.today()
         duration = end_time - start_time
         print("\nSolution found!" if self.closeList[len(self.closeList) - 1] == self.goal_state else "\nFailure...")
