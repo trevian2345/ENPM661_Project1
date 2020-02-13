@@ -10,6 +10,21 @@ and the algorithm will output the minimum steps necessary to solve the puzzle.
 
 --------------------------------------
 
+### Libraries
+
+The solver uses the following Python libraries:
+
+| Name      | Usage                                                             |
+| --------- | ----------------------------------------------------------------- | 
+| random    | Generating randomized puzzles                                     |
+| time      | Small time delays within the solver                               |
+| sys       | Outputting to stdout                                              |
+| datetime  | Record the start, end, and duration of the algorithm execution    |
+| io        | Writing information to text files                                 |
+| argparse  | Parsing input arguments to the program                            |
+
+--------------------------------------
+
 ### Execution
 
 The program, solver.py, is run by executing the command `python -u solver.py`
