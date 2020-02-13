@@ -2,6 +2,7 @@ import random
 import time
 import sys
 from datetime import datetime
+import io
 
 
 class solver:
@@ -13,6 +14,9 @@ class solver:
         self.goal_state = 0x012345678
         self.actions = [[(i >> 1) * (1 if i & 1 else -1), (1 if (i & 1) else -1) if not i >> 1 else 0] for i in range(4)]
         self.max_states = 9*8*7*6*5*4*3
+        self.nodePath = "nodePath.txt"
+        self.nodeInfo = "NodesInfo.txt"
+        self.nodesExplored = "Nodes.txt"
         self.random_init()
         while not self.is_solvable(self.initial_state):
             self.random_init()
@@ -95,7 +99,7 @@ class solver:
             print("ERROR: This is NOT solvable!!!")
             exit(1)
 
-        time.sleep(3)
+        time.sleep(1.5)
         start_time = datetime.today()
         self.openList = [(self.state_to_int(self.initial_state), 0, -1)]
 
@@ -156,12 +160,24 @@ class solver:
             next_action_index = next(i for i in range(len(self.closeList)) if self.closeList[i] == self.state_to_int(next_state))
         state_list.reverse()
         sys.stdout.write("\n\nOptimal solution is as follows (%d total moves):\n" % (len(state_list) - 1))
-        for state in state_list:
-            self.print_state(state)
+        is_open = False
+        file = None
+        try:
+            file = io.open(self.nodePath, mode="wt")
+            is_open = True
+        except (FileNotFoundError, FileExistsError):
+            sys.stdout.write("Unable to open text file for writing.")
+        for i in range(len(state_list)):
+            if i > 0:
+                sys.stdout.write("\nStep %d:\n" % i)
+            if is_open:
+                file.write("%s\n" % " ".join(" ".join("%d" % state_list[i][j][k] for j in range(3)) for k in range(3)))
+            self.print_state(state_list[i])
+        file.close()
 
 
 if __name__ == '__main__':
     S = solver()
     S.solve()
-    time.sleep(1)
+    time.sleep(0.75)
     S.displaySolution()
