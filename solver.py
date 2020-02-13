@@ -11,6 +11,7 @@ class solver:
         self.openList = []
         self.closeList = []
         self.actionList = []
+        self.parentList = []
         self.initial_state = []
         self.actions = [[(i >> 1) * (1 if i & 1 else -1), (1 if (i & 1) else -1) if not i >> 1 else 0] for i in range(4)]
         self.max_states = 9*8*7*6*5*4*3
@@ -136,7 +137,9 @@ class solver:
 
         time.sleep(0.75)
         start_time = datetime.today()
-        self.openList = [(self.state_to_int(self.initial_state), 0, -1)]
+
+        # Instantiate list of open cells to be explored.  List of tuples (state, cost, previous_action, parent_index)
+        self.openList = [(self.state_to_int(self.initial_state), 0, -1, -1)]
 
         # Expand cells while there are cells on the open list
         while len(self.openList) > 0:
@@ -144,7 +147,7 @@ class solver:
             minimum = -1
             index = -1
             for i in range(len(self.openList)):
-                state, cost, previous_action = self.openList[i]
+                state, cost, previous_action, parent_index = self.openList[i]
                 if cost < minimum or minimum < 0:
                     index = i
                     minimum = cost
@@ -163,9 +166,10 @@ class solver:
                     new_state_as_int = self.state_to_int(new_state)
                     if new_state_as_int not in self.closeList:
                         if new_state_as_int not in [self.openList[i][0] for i in range(len(self.openList))]:
-                            self.openList.append((new_state_as_int, new_cost, action_index))
+                            self.openList.append((new_state_as_int, new_cost, action_index, len(self.closeList)))
             self.closeList.append(self.openList[index][0])
             self.actionList.append(self.openList[index][2])
+            self.parentList.append(self.openList[index][3])
 
             # Check for the goal state
             if self.openList[index][0] == self.goal_state:
@@ -217,11 +221,7 @@ class solver:
         sys.stdout.write("\nWriting to output files %s, %s, and %s..." % (self.nodeInfo, self.nodePath, self.nodesExplored))
         for i in range(len(self.closeList)):
             nodesExplored.write("%s\n" % " ".join(" ".join("%d" % self.int_to_state(self.closeList[i])[j][k] for j in range(3)) for k in range(3)))
-            # if i == 0:
-            #     nodeInfo.write("1 0\n")
-            # else:
-            #     nodeInfo.write("%d %d\n" % (i + 1,
-            #         next(j + 1 for j in range(len(self.closeList)) if self.state_to_int(self.move(self.int_to_state(self.closeList[i]), self.actions[self.actionList[i]], backwards=True)) == self.closeList[j])))
+            nodeInfo.write("%d %d\n" % (i + 1, self.parentList[i] + 1))
 
         # Close files
         nodePath.close()
@@ -240,7 +240,8 @@ if __name__ == '__main__':
                         help="Set the goal to the provided puzzle string.  Has the same format as the " \
                                          "--puzzle argument.  Default value: %(default)s.")
     parser.add_argument('--animate', action="store_true",
-                        help="Display an animation of the sliding puzzle being solved. Default value: %(default)s.")
+                        help="Display an animation of the sliding puzzle being solved. Default value: %(default)s. " \
+                             "Not currently implemented.")
     v = argparse.Namespace()
     args = parser.parse_args(namespace=v)
     S = solver(v.goal, v.puzzle)
