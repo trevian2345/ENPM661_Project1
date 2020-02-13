@@ -217,11 +217,11 @@ class solver:
         sys.stdout.write("\nWriting to output files %s, %s, and %s..." % (self.nodeInfo, self.nodePath, self.nodesExplored))
         for i in range(len(self.closeList)):
             nodesExplored.write("%s\n" % " ".join(" ".join("%d" % self.int_to_state(self.closeList[i])[j][k] for j in range(3)) for k in range(3)))
-            if i == 0:
-                nodeInfo.write("1 0\n")
-            else:
-                nodeInfo.write("%d %d\n" % (i + 1,
-                    next(j + 1 for j in range(len(self.closeList)) if self.state_to_int(self.move(self.int_to_state(self.closeList[i]), self.actions[self.actionList[i]], backwards=True)) == self.closeList[j])))
+            # if i == 0:
+            #     nodeInfo.write("1 0\n")
+            # else:
+            #     nodeInfo.write("%d %d\n" % (i + 1,
+            #         next(j + 1 for j in range(len(self.closeList)) if self.state_to_int(self.move(self.int_to_state(self.closeList[i]), self.actions[self.actionList[i]], backwards=True)) == self.closeList[j])))
 
         # Close files
         nodePath.close()
