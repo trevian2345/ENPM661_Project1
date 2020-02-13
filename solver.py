@@ -3,23 +3,62 @@ import time
 import sys
 from datetime import datetime
 import io
+import argparse
 
 
 class solver:
-    def __init__(self):
+    def __init__(self, goal, puzzle=None):
         self.openList = []
         self.closeList = []
         self.actionList = []
         self.initial_state = []
-        self.goal_state = 0x012345678
         self.actions = [[(i >> 1) * (1 if i & 1 else -1), (1 if (i & 1) else -1) if not i >> 1 else 0] for i in range(4)]
         self.max_states = 9*8*7*6*5*4*3
         self.nodePath = "nodePath.txt"
         self.nodeInfo = "NodesInfo.txt"
         self.nodesExplored = "Nodes.txt"
-        self.random_init()
-        while not self.is_solvable(self.initial_state):
+
+        # Initialize the solver with a user-specified goal if it is valid.  Print an error message and exit otherwise.
+        self.goal_state = self.convert_puzzle(goal, "goal puzzle")
+
+        # Randomize the puzzle if it is not specified by the user.
+        if puzzle is None:
             self.random_init()
+            while self.is_even_parity(self.initial_state) != self.is_even_parity(self.int_to_state(self.goal_state)):
+                self.random_init()
+
+        # Initialize the solver with a user-specified puzzle if it is valid.  Print an error message and exit otherwise.
+        else:
+            self.initial_state = self.int_to_state(self.convert_puzzle(puzzle, "initial puzzle"))
+
+
+
+    def convert_puzzle(self, puzzle, which_puzzle):
+        puzzle_args = []
+        try:
+            puzzle_args = [int(i) for i in str(puzzle).split()]
+        except ValueError:
+            self.print_error(which_puzzle, "noninteger value supplied")
+        if len(puzzle_args) != 9:
+            self.print_error(which_puzzle, "wrong number of values")
+        supplied_values = []
+        for i in puzzle_args:
+            if i < 0 or i > 8:
+                self.print_error(which_puzzle, "%d is outside of range 0 to 8" % i)
+            if i in supplied_values:
+                self.print_error(which_puzzle, "multiple copies of %d" % i)
+            supplied_values.append(i)
+
+        return sum([(puzzle_args[i] << (8 - i)*4) for i in range(9)])
+
+    @staticmethod
+    def print_error(which_puzzle, error):
+        sys.stdout.write("\nERROR:  Incorrect format for the %s:  %s." % (which_puzzle, error))
+        sys.stdout.write("\nEnsure that the following are true for the %s." % which_puzzle)
+        sys.stdout.write("\n   1. You supplied exactly 9 values.")
+        sys.stdout.write("\n   2. You supplied only integers from 0 to 8.")
+        sys.stdout.write("\n   3. Each integer you supplied is unique.\n")
+        exit(0)
 
     @staticmethod
     def print_state(state):
@@ -37,7 +76,6 @@ class solver:
                 chosen_numbers.append(num)
                 nextLine.append(num)
             self.initial_state.append(nextLine)
-        # self.initial_state = [[1, 4, 2], [0, 7, 5], [3, 6, 8]]
 
     @staticmethod
     def state_to_int(state):
@@ -76,30 +114,27 @@ class solver:
             return None
 
     @staticmethod
-    def is_solvable(state):
-        # print("SOLVABILITY:")
+    def is_even_parity(state):
         inversions = 0
         for i in range(3):
             for j in range(3):
-                print_string = "%d:  " % state[i][j]
                 for m in range(3):
                     for n in range(3):
                         if m > i or (m == i and n > j):
                             if state[m][n] < state[i][j] and state[m][n] != 0:
-                                print_string = "%s %d" % (print_string, state[m][n])
                                 inversions += 1
-                # print(print_string)
-        # print("TOTAL INVERSIONS:  %d" % inversions)
         return False if inversions % 2 else True
 
     def solve(self):
-        print("Initial State:")
+        sys.stdout.write("\nInitial state:\n")
         self.print_state(self.initial_state)
-        if not self.is_solvable(self.initial_state):
-            print("ERROR: This is NOT solvable!!!")
+        sys.stdout.write("\nGoal state:\n")
+        self.print_state(self.int_to_state(self.goal_state))
+        if not (self.is_even_parity(self.initial_state) == self.is_even_parity(self.int_to_state(self.goal_state))):
+            sys.stdout.write("ERROR: This is NOT solvable!\n")
             exit(1)
 
-        time.sleep(1.5)
+        time.sleep(0.75)
         start_time = datetime.today()
         self.openList = [(self.state_to_int(self.initial_state), 0, -1)]
 
@@ -179,6 +214,7 @@ class solver:
             self.print_state(state_list[i])
 
         # Append node parent information to NodesInfo in the form of <node_index, parent_index>
+        sys.stdout.write("\nWriting to output files %s, %s, and %s..." % (self.nodeInfo, self.nodePath, self.nodesExplored))
         for i in range(len(self.closeList)):
             nodesExplored.write("%s\n" % " ".join(" ".join("%d" % self.int_to_state(self.closeList[i])[j][k] for j in range(3)) for k in range(3)))
             if i == 0:
@@ -191,10 +227,23 @@ class solver:
         nodePath.close()
         nodeInfo.close()
         nodesExplored.close()
+        sys.stdout.write("\nDone!\n")
 
 
 if __name__ == '__main__':
-    S = solver()
+    parser = argparse.ArgumentParser(description="Solves an 8-puzzle.")
+    parser.add_argument('--puzzle', type=str,
+                        help="Solve the provided puzzle.  Value has the format 'N0 N1 N2 N3 N4 N5 " \
+                                         "N6 N7 N8' where Nx are unique integers from 0 to 8, and 0 denotes the " \
+                                         "blank space. Puzzle is randomly generated by default.")
+    parser.add_argument('--goal', type=str, default="0 1 2 3 4 5 6 7 8",
+                        help="Set the goal to the provided puzzle string.  Has the same format as the " \
+                                         "--puzzle argument.  Default value: %(default)s.")
+    parser.add_argument('--animate', action="store_true",
+                        help="Display an animation of the sliding puzzle being solved. Default value: %(default)s.")
+    v = argparse.Namespace()
+    args = parser.parse_args(namespace=v)
+    S = solver(v.goal, v.puzzle)
     S.solve()
-    time.sleep(0.75)
+    time.sleep(0.5)
     S.displaySolution()
