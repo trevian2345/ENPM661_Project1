@@ -102,7 +102,6 @@ class solver:
         time.sleep(1.5)
         start_time = datetime.today()
         self.openList = [(self.state_to_int(self.initial_state), 0, -1)]
-        nodeInfo = io.open(self.nodeInfo, mode="wt")
 
         # Expand cells while there are cells on the open list
         while len(self.openList) > 0:
@@ -132,7 +131,6 @@ class solver:
                             self.openList.append((new_state_as_int, new_cost, action_index))
             self.closeList.append(self.openList[index][0])
             self.actionList.append(self.openList[index][2])
-            nodeInfo.write("%d %d %d\n" % (len(self.closeList), self.openList[index][1], 0))
 
             # Check for the goal state
             if self.openList[index][0] == self.goal_state:
@@ -140,7 +138,6 @@ class solver:
             else:
                 self.openList.pop(index)
 
-        nodeInfo.close()
         end_time = datetime.today()
         duration = end_time - start_time
         print("\nSolution found!" if self.closeList[len(self.closeList) - 1] == self.goal_state else "\nFailure...")
@@ -157,16 +154,18 @@ class solver:
         next_state = self.int_to_state(self.goal_state)
         state_list = [self.int_to_state(self.goal_state)]
         while self.actionList[next_action_index] != -1:
-            next_action = [-i for i in self.actions[self.actionList[next_action_index]]]
-            next_state = self.move(next_state, next_action)
+            next_action = self.actions[self.actionList[next_action_index]]
+            next_state = self.move(next_state, next_action, backwards=True)
             state_list.append(next_state)
             next_action_index = next(i for i in range(len(self.closeList)) if self.closeList[i] == self.state_to_int(next_state))
         state_list.reverse()
         sys.stdout.write("\n\nOptimal solution is as follows (%d total moves):\n" % (len(state_list) - 1))
         is_open = False
-        file = None
+        nodePath = None
+        nodeInfo = None
         try:
-            file = io.open(self.nodePath, mode="wt")
+            nodePath = io.open(self.nodePath, mode="wt")
+            nodeInfo = io.open(self.nodeInfo, mode="wt")
             is_open = True
         except (FileNotFoundError, FileExistsError):
             sys.stdout.write("Unable to open text file for writing.")
@@ -174,9 +173,17 @@ class solver:
             if i > 0:
                 sys.stdout.write("\nStep %d:\n" % i)
             if is_open:
-                file.write("%s\n" % " ".join(" ".join("%d" % state_list[i][j][k] for j in range(3)) for k in range(3)))
+                nodePath.write("%s\n" % " ".join(" ".join("%d" % state_list[i][j][k] for j in range(3)) for k in range(3)))
             self.print_state(state_list[i])
-        file.close()
+
+        # Append to NodesInfo in the form of <node_index, parent_index>
+        for i in range(len(self.closeList)):
+            if i == 0:
+                nodeInfo.write("1 0\n")
+            else:
+                nodeInfo.write("%d %d\n" % (i + 1,
+                    next(j + 1 for j in range(len(self.closeList)) if self.state_to_int(self.move(self.int_to_state(self.closeList[i]), self.actions[self.actionList[i]], backwards=True)) == self.closeList[j])))
+        nodePath.close()
 
 
 if __name__ == '__main__':
