@@ -163,9 +163,11 @@ class solver:
         is_open = False
         nodePath = None
         nodeInfo = None
+        nodesExplored = None
         try:
             nodePath = io.open(self.nodePath, mode="wt")
             nodeInfo = io.open(self.nodeInfo, mode="wt")
+            nodesExplored = io.open(self.nodesExplored, mode="wt")
             is_open = True
         except (FileNotFoundError, FileExistsError):
             sys.stdout.write("Unable to open text file for writing.")
@@ -176,14 +178,19 @@ class solver:
                 nodePath.write("%s\n" % " ".join(" ".join("%d" % state_list[i][j][k] for j in range(3)) for k in range(3)))
             self.print_state(state_list[i])
 
-        # Append to NodesInfo in the form of <node_index, parent_index>
+        # Append node parent information to NodesInfo in the form of <node_index, parent_index>
         for i in range(len(self.closeList)):
+            nodesExplored.write("%s\n" % " ".join(" ".join("%d" % self.int_to_state(self.closeList[i])[j][k] for j in range(3)) for k in range(3)))
             if i == 0:
                 nodeInfo.write("1 0\n")
             else:
                 nodeInfo.write("%d %d\n" % (i + 1,
                     next(j + 1 for j in range(len(self.closeList)) if self.state_to_int(self.move(self.int_to_state(self.closeList[i]), self.actions[self.actionList[i]], backwards=True)) == self.closeList[j])))
+
+        # Close files
         nodePath.close()
+        nodeInfo.close()
+        nodesExplored.close()
 
 
 if __name__ == '__main__':
